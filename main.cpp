@@ -8,22 +8,23 @@
 #define PI 3.141592653589793238462643383279502884L
 
 
-using namespace std;
+using std::vector;
+using std::string;
 
 
-typedef complex<double> Complex;
+typedef std::complex<double> Complex;
 
 
 const int BASE = 10;
 
 
-vector<int> str_to_poly(string str) {
-    vector<int> p(str.size());
+int *str_to_poly(string str) {
+    int *p = new int[str.size()]();
 
     for (size_t i = 0; i < str.size(); i++)
         p[i] = str[i] - '0';
 
-    reverse(p.begin(), p.end());
+    std::reverse(p, p + str.size());
 
     return p;
 }
@@ -42,10 +43,11 @@ string poly_to_str(vector<int> p) {
 
 
 template <typename T>
-void print_poly(vector<T> p) {
-    for (size_t i = 0; i < p.size(); i++)
-        cout << p[i] << " ";
-    cout << endl;
+void print_poly(T *p, int size) {
+    for (size_t i = 0; i < size; i++)
+        std::cout << p[i] << " ";
+    
+    std::cout << std::endl;
 }
 
 
@@ -66,21 +68,23 @@ void normalize(vector<int> *p) {
 
 
 template <typename T>
-vector<Complex> fft(vector<T> p, Complex w) {
-    int size = p.size();
-
+Complex *fft(T *p, int size, Complex w) {
     if (size == 1) {
-        return {p[0]};
+        Complex *res = new Complex[1] {p[0]};
+        return res;
     }
     else {
-        vector<T> A, B;
+        T *A = new T[size / 2](), *B = new T[size / 2]();
 
         for(int i = 0; i < size; i++) {
-            if (i % 2) B.push_back(p[i]);
-            else A.push_back(p[i]);
+            if (i % 2) B[i / 2] = p[i];
+            else       A[i / 2] = p[i];
         }
 
-        vector<Complex> a = fft(A, w * w), b = fft(B, w * w), res(size);
+        Complex *a = fft(A, size / 2, w * w), *b = fft(B, size / 2, w * w), *res = new Complex[size]();
+
+        delete []A;
+        delete []B;
 
         Complex wt = 1;
         
@@ -91,66 +95,66 @@ vector<Complex> fft(vector<T> p, Complex w) {
             wt *= w;
         }
 
+        delete []a;
+        delete []b;
+
         return res;
     }
 }
 
 
-void multiply_poly(vector<int> *a, vector<int> *b) {
+void resize(int **p, int old_size, int new_size) {
+    int *copy = new int[new_size]();
+    for (int i = 0; i < old_size; i++) copy[i] = (*p)[i];
+    delete [](*p);
+    *p = copy;
+}
+
+
+vector<int> multiply_poly(int **a, int a_size, int **b, int b_size) {
     size_t new_size = 1;
-    while (new_size < a -> size() || new_size < b -> size()) new_size = new_size << 1;
+    while (new_size < a_size || new_size < b_size) new_size = new_size << 1;
     new_size = new_size << 1;
 
-    // cout << "New size " << new_size << endl;
+    resize(a, a_size, new_size);
+    resize(b, b_size, new_size);
 
-    a -> resize(new_size);
-    b -> resize(new_size);
+    Complex *A = fft(*a, new_size, {cos(2 * PI / new_size), sin(2 * PI / new_size)});
+    Complex *B = fft(*b, new_size, {cos(2 * PI / new_size), sin(2 * PI / new_size)});
 
-    vector<Complex> A = fft(*a, {cos(2 * PI / new_size), sin(2 * PI / new_size)});
-    vector<Complex> B = fft(*b, {cos(2 * PI / new_size), sin(2 * PI / new_size)});
-    /*
-    cout << "FFT Polynoms check" << endl; 
-    print_poly(A);
-    print_poly(B);
-    */
     for (int i = 0; i < new_size; i++)
         A[i] *= B[i];
-    /*
-    cout << "Multiply check" << endl; 
-    print_poly(A);
-    */
-    A = fft(A, {cos(-2 * PI / new_size), sin(-2 * PI / new_size)});
-    /*
-    cout << "Inverse FFT check" << endl; 
-    print_poly(A);
-    */
-    for(int i = 0; i < new_size; i++)
-        (*a)[i] = round(real(A[i]) / new_size);
     
-    normalize(a);
-    /*
-    cout << "Result polynom check" << endl; 
-    print_poly(*a);
-    */
+    delete []B;
+    
+    A = fft(A, new_size, {cos(-2 * PI / new_size), sin(-2 * PI / new_size)});
+    
+    vector<int> res(new_size);
+
+    for(int i = 0; i < new_size; i++)
+        res[i] = round(real(A[i]) / new_size);
+    
+    delete []A;
+
+    normalize(&res);
+
+    return res;
 }
 
 
 
 int main() {
     string a, b;
-    cin >> a >> b;
+    std::cin >> a >> b;
 
-    vector<int> A = str_to_poly(a), B = str_to_poly(b);
-    /*
-    cout << "Polynoms created!" << endl;
+    int *A = str_to_poly(a), *B = str_to_poly(b);
 
-    cout << "Polynoms check a = " << poly_to_str(A) << " b = " << poly_to_str(B) << endl; 
-    print_poly(A);
-    print_poly(B);
-    */
-    multiply_poly(&A, &B);
+    vector<int> res = multiply_poly(&A, a.size(), &B, b.size());
 
-    cout << "Result " << poly_to_str(A) << endl;
+    delete []A;
+    delete []B;
+
+    std::cout << "Result " << poly_to_str(res) << std::endl;
 
     return 0;
 }
