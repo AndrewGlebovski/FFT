@@ -1,6 +1,7 @@
 #include <iostream>
+#include <string>
 #include <complex>
-#include <cmath>
+#include <algorithm>
 #include <vector>
 
 
@@ -16,27 +17,27 @@ typedef complex<double> Complex;
 const int BASE = 10;
 
 
-vector<int> int_to_poly(int n) {
-    vector<int> p;
+vector<int> str_to_poly(string str) {
+    vector<int> p(str.size());
 
-    while (n != 0) {
-        p.push_back(n % BASE);
-        n /= BASE;
-    }
+    for (size_t i = 0; i < str.size(); i++)
+        p[i] = str[i] - '0';
+
+    reverse(p.begin(), p.end());
 
     return p;
 }
 
 
-int poly_to_int(vector<int> p) {
-    int n = 0, x = 1;
+string poly_to_str(vector<int> p) {
+    string str(p.size(), '0');
 
-    for(int i = 0; i < p.size(); i++) {
-        n += x * p[i];
-        x *= BASE;
-    }
+    for(int i = 0; i < p.size(); i++)
+        str[i] += p[i];
 
-    return n;
+    reverse(str.begin(), str.end());
+
+    return str;
 }
 
 
@@ -100,56 +101,56 @@ void multiply_poly(vector<int> *a, vector<int> *b) {
     while (new_size < a -> size() || new_size < b -> size()) new_size = new_size << 1;
     new_size = new_size << 1;
 
-    cout << "New size " << new_size << endl;
+    // cout << "New size " << new_size << endl;
 
     a -> resize(new_size);
     b -> resize(new_size);
 
     vector<Complex> A = fft(*a, {cos(2 * PI / new_size), sin(2 * PI / new_size)});
     vector<Complex> B = fft(*b, {cos(2 * PI / new_size), sin(2 * PI / new_size)});
-
+    /*
     cout << "FFT Polynoms check" << endl; 
     print_poly(A);
     print_poly(B);
-
+    */
     for (int i = 0; i < new_size; i++)
         A[i] *= B[i];
-
+    /*
     cout << "Multiply check" << endl; 
     print_poly(A);
-
+    */
     A = fft(A, {cos(-2 * PI / new_size), sin(-2 * PI / new_size)});
-
+    /*
     cout << "Inverse FFT check" << endl; 
     print_poly(A);
-
+    */
     for(int i = 0; i < new_size; i++)
         (*a)[i] = round(real(A[i]) / new_size);
     
     normalize(a);
-
+    /*
     cout << "Result polynom check" << endl; 
-
     print_poly(*a);
+    */
 }
 
 
 
 int main() {
-    int a = 0, b = 0;
+    string a, b;
     cin >> a >> b;
 
-    vector<int> A = int_to_poly(a), B = int_to_poly(b);
-
+    vector<int> A = str_to_poly(a), B = str_to_poly(b);
+    /*
     cout << "Polynoms created!" << endl;
 
-    cout << "Polynoms check a = " << poly_to_int(A) << " b = " << poly_to_int(B) << endl; 
+    cout << "Polynoms check a = " << poly_to_str(A) << " b = " << poly_to_str(B) << endl; 
     print_poly(A);
     print_poly(B);
-
+    */
     multiply_poly(&A, &B);
 
-    cout << "Result " << poly_to_int(A) << endl;
+    cout << "Result " << poly_to_str(A) << endl;
 
     return 0;
 }
